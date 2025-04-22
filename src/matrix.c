@@ -45,6 +45,42 @@ MAT_RET mat_create(const float * data, int nr, int nc, Matrix ** m) {
     return MAT_SUCCESS;
 }
 
+MAT_RET mat_copy(const Matrix * m, Matrix ** m_copy) {
+    if (m == NULL)
+        return MAT_NULL_POINTER;
+
+    return mat_create(m->data, m->n_rows, m->n_cols, m_copy);
+}
+
+MAT_RET mat_transpose(Matrix * m) {
+    if (m == NULL)
+        return MAT_NULL_POINTER;
+
+    int i, j;
+    int nr = m->n_rows;
+    int nc = m->n_cols;
+    
+    float * t_data = malloc(nr * nc * sizeof(float)); // tmp vector to store serialized transposed values
+
+    for (i = 0; i < nc; i++) {
+        for (j = 0; j < nr; j++) {
+            t_data[i*nr + j] = m->data[j*nc + i];
+        }   
+    }
+
+    // in-place operation
+    for (i = 0; i < nr*nc; i++)
+        m->data[i] = t_data[i];
+    
+    // swap dims
+    nc = m->n_rows;
+    m->n_rows = m->n_cols;
+    m->n_cols = nc;
+    
+    free(t_data);
+    return MAT_SUCCESS;
+}
+
 MAT_RET mat_add_bias(const Matrix * m, int bias) {
     if (m == NULL)
         return MAT_NULL_POINTER;
@@ -64,7 +100,45 @@ MAT_RET mat_mul_ew(const Matrix * m1, const Matrix * m2) {
     return mat_ew_op(m1, m2, OP_MUL_EW);
 }
 
-//Matrix * mat_dot(Matrix * m1, Matrix * m2)
+MAT_RET mat_dot(const Matrix * m1, const Matrix * m2, Matrix ** m) {
+    if (m1 == NULL || m2 == NULL)
+        return MAT_NULL_POINTER;
+    if (m1->n_cols != m2->n_rows)
+        return MAT_INVALID_SHAPE;
+
+    int ret, i, j, sum, row, col;
+    Matrix * m2_copy;
+
+    // copy m2 -> m2_copy
+    if ((ret = mat_copy(m2, &m2_copy)) != MAT_SUCCESS) {
+        return ret;
+    }
+
+    // transpose m2_copy in-place
+    if ((ret = mat_transpose(m2_copy)) != MAT_SUCCESS) {
+        return ret;
+    }
+
+    // m1 = nr1*nc1
+    // m2 = nr2*nc2
+    // alloc m = nr1*nc2
+    if ((ret = mat_create(NULL, m1->n_rows, m2->n_cols, m)) != MAT_SUCCESS) {
+        mat_print_error(ret);
+        return 0;
+    }
+
+    // row per row product
+    for (i = 0; i < m1->n_rows*m2->n_cols; i++) {
+        sum = 0;
+        row = i / m2->n_cols;
+        col = i % m2->n_cols;
+        for (j = 0; j < m2_copy->n_cols; j++)
+            sum += m1->data[row*m1->n_cols + j] * m2_copy->data[col*m2_copy->n_cols + j];
+        (*m)->data[i] = sum;
+    }
+
+    return MAT_SUCCESS;
+}
 
 void mat_print(const Matrix * m) {
     if (m == NULL)
@@ -105,7 +179,7 @@ const char * mat_error_string(MAT_RET err) {
         case MAT_NULL_POINTER: return "Null pointer";
         case MAT_ALLOC_FAILED: return "Allocation failed";        
         case MAT_INVALID_DIM: return "Invalid dimension(s)";
-        case MAT_INVALID_SHAPE: return "Invalid tensor shape";
+        case MAT_INVALID_SHAPE: return "Invalid shape";
         default: return "Unknown error";
     }
 }

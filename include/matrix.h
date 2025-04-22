@@ -13,11 +13,13 @@ typedef enum {
 
 // todo: const
 
-MAT_RET mat_create(const float * data, int n_rows, int n_cols, Matrix ** m);   
+MAT_RET mat_create(const float * data, int n_rows, int n_cols, Matrix ** m);
+MAT_RET mat_copy(const Matrix * m, Matrix ** m_copy);
+MAT_RET mat_transpose(Matrix * m);                                              // in-place transpose
 MAT_RET mat_add_bias(const Matrix * m, int bias);                               // add bias
 MAT_RET mat_add_ew(const Matrix * m1, const Matrix * m2);                       // element-wise sum
 MAT_RET mat_mul_ew(const Matrix * m1, const Matrix * m2);                       // element-wise product
-MAT_RET mat_dot(const Matrix * m1, const Matrix * m2);                          // dot product
+MAT_RET mat_dot(const Matrix * m1, const Matrix * m2, Matrix ** m);             // dot product
   
 void mat_print(const Matrix * m);
 void mat_destroy(Matrix * m);     
