@@ -1,7 +1,7 @@
 #include "matrix.h"
 #include <stdlib.h>
 #include <stddef.h>
-#include <stdio.h> // ############
+#include <stdio.h>
 
 #define MAX_ROWS 1000
 #define MAX_COLS 1000
@@ -12,10 +12,10 @@
 struct matrix {
     int n_rows;
     int n_cols;    
-    float * data;
+    float data[];
 };
 
-static MAT_RET mat_ew_op(const Matrix * m1, const Matrix * m2, int op);
+static MAT_RET mat_ew_op(Matrix * m1, const Matrix * m2, int op);
 
 MAT_RET mat_create(const float * data, int nr, int nc, Matrix ** m) {
     /*
@@ -25,7 +25,7 @@ MAT_RET mat_create(const float * data, int nr, int nc, Matrix ** m) {
     */
     size_t total_size;
 
-    if (nr < 1 || nc > MAX_ROWS || nc < 1 || nc > MAX_COLS)
+    if (nr < 1 || nr > MAX_ROWS || nc < 1 || nc > MAX_COLS)
         return MAT_INVALID_DIM;
 
     total_size = sizeof(struct matrix) + nr * nc * sizeof(float);
@@ -35,10 +35,9 @@ MAT_RET mat_create(const float * data, int nr, int nc, Matrix ** m) {
 
     (*m)->n_rows = nr;
     (*m)->n_cols = nc;
-    (*m)->data = (float *) (*m + 1);     // add struct offset
 
     if (data != NULL) { 
-        for (int i = 0; i < nr*nc; i++) { // macro?
+        for (int i = 0; i < nr*nc; i++) {
             (*m)->data[i] = data[i];
         }
     }
@@ -82,26 +81,26 @@ MAT_RET mat_transpose(Matrix * m) {
     return MAT_SUCCESS;
 }
 
-MAT_RET mat_add_bias(const Matrix * m, int bias) {
+MAT_RET mat_add_bias(Matrix * m, int bias) {
     if (m == NULL)
         return MAT_NULL_POINTER;
     if (bias == 0)
         return MAT_SUCCESS;
-    for (int i = 0; i < m->n_rows*m->n_cols; i++) { // macro?
+    for (int i = 0; i < m->n_rows*m->n_cols; i++) {
         m->data[i] += bias;
     }
     return MAT_SUCCESS;
 }
 
-MAT_RET mat_add_ew(const Matrix * m1, const Matrix * m2) {
+MAT_RET mat_add_ew(Matrix * m1, const Matrix * m2) {
     return mat_ew_op(m1, m2, OP_ADD_EW);
 }
 
-MAT_RET mat_mul_ew(const Matrix * m1, const Matrix * m2) {
+MAT_RET mat_mul_ew(Matrix * m1, const Matrix * m2) {
     return mat_ew_op(m1, m2, OP_MUL_EW);
 }
 
-MAT_RET mat_dot(const Matrix * m1, const Matrix * m2, Matrix ** m) {
+MAT_RET mat_dot(Matrix * m1, const Matrix * m2, Matrix ** m) {
     if (m1 == NULL || m2 == NULL)
         return MAT_NULL_POINTER;
     if (m1->n_cols != m2->n_rows)
@@ -138,6 +137,7 @@ MAT_RET mat_dot(const Matrix * m1, const Matrix * m2, Matrix ** m) {
         (*m)->data[i] = sum;
     }
 
+    free(m2_T);
     return MAT_SUCCESS;
 }
 
@@ -145,18 +145,18 @@ void mat_print(const Matrix * m) {
     if (m == NULL)
         return;
     printf("\n");
-    for (int i = 0; i < m->n_rows*m->n_cols; i++) { // macro?
+    for (int i = 0; i < m->n_rows*m->n_cols; i++) {
         printf("%8.2f%s", m->data[i], (((i+1) % (m->n_cols)) == 0) ? "\n" : " ");
     }
 }
 
-void mat_destroy(Matrix * m) {
+inline void mat_destroy(Matrix * m) {
     free(m);
 }
 
 // private
 
-MAT_RET mat_ew_op(const Matrix * m1, const Matrix * m2, int op) {
+MAT_RET mat_ew_op(Matrix * m1, const Matrix * m2, int op) {
     if (m1 == NULL || m2 == NULL)
         return MAT_NULL_POINTER;
     if ((m1->n_rows != m2->n_rows) || (m1->n_cols != m2->n_cols))

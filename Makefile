@@ -14,6 +14,9 @@ OBJ_FILES = $(SRC_FILES:$(SRC_DIR)/%.c=%.o)
 # Default target: build the project
 all: $(TARGET)
 
+asan: $(OBJ_FILES)
+	$(CC) $(OBJ_FILES) -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer -o $(TARGET)
+
 # Link object files to create the executable
 $(TARGET): $(OBJ_FILES)
 	$(CC) $(OBJ_FILES) -o $(TARGET)

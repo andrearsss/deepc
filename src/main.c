@@ -72,6 +72,7 @@ int test1() {
 }
 
 int main() {
+    test1();
     Matrix * matrix;
     Matrix * matrix2;
     Matrix * matrix_dot;
