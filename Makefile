@@ -5,29 +5,50 @@ CFLAGS = -Wall -I./include
 # Directories
 SRC_DIR = src
 INCLUDE_DIR = include
+TEST_DIR = test
 
-# Files
+# Files for main target
 TARGET = deepc
-SRC_FILES = $(SRC_DIR)/main.c $(SRC_DIR)/matrix.c
-OBJ_FILES = $(SRC_FILES:$(SRC_DIR)/%.c=%.o)
+MAIN_SRC_FILES = $(SRC_DIR)/main.c $(SRC_DIR)/matrix.c
+MAIN_OBJ_FILES = $(MAIN_SRC_FILES:$(SRC_DIR)/%.c=%.o)
 
-# Default target: build the project
+# Files for test target
+TEST_TARGET = $(TEST_DIR)/test_main
+TEST_MAIN_SRC = $(TEST_DIR)/test_main.c
+TEST_MAIN_OBJ = $(TEST_MAIN_SRC:.c=.o)
+LIB_SRC = $(SRC_DIR)/matrix.c
+LIB_OBJ = matrix.o
+
 all: $(TARGET)
 
-asan: $(OBJ_FILES)
-	$(CC) $(OBJ_FILES) -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer -o $(TARGET)
+asan: $(MAIN_OBJ_FILES)
+	$(CC) $(MAIN_OBJ_FILES) -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer -o $(TARGET)
 
-# Link object files to create the executable
-$(TARGET): $(OBJ_FILES)
-	$(CC) $(OBJ_FILES) -o $(TARGET)
+blas: $(MAIN_OBJ_FILES)
+	$(CC) $(MAIN_OBJ_FILES) -o $(TARGET) -lopenblas -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer
 
-# Compile .c files to .o files
-%.o: $(SRC_DIR)/%.c
+$(TARGET): $(MAIN_OBJ_FILES)
+	$(CC) $(MAIN_OBJ_FILES) -o $(TARGET)
+
+# --- Test Target ---
+test: $(TEST_TARGET)
+	$(TEST_TARGET) 
+
+$(TEST_TARGET): $(TEST_MAIN_OBJ) $(LIB_OBJ)
+	$(CC) $^ -o $@ -lopenblas -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer
+
+$(TEST_MAIN_OBJ): $(TEST_MAIN_SRC) $(INCLUDE_DIR)/matrix.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# Clean up the generated files
-clean:
-	rm -rf $(OBJ_FILES) $(TARGET)
+# Compile matrix.o from src/matrix.c for both main and test targets
+$(LIB_OBJ): $(SRC_DIR)/matrix.c $(INCLUDE_DIR)/matrix.h
+	$(CC) $(CFLAGS) -c $< -o $@
 
-# Phony targets
-.PHONY: all clean
+# --- Generic rule for object files from src ---
+%.o: $(SRC_DIR)/%.c $(INCLUDE_DIR)/matrix.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+clean:
+	rm -rf $(MAIN_OBJ_FILES) $(TARGET) $(TEST_TARGET) $(TEST_MAIN_OBJ) $(LIB_OBJ)
+
+.PHONY: all clean asan blas test

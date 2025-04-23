@@ -71,3 +71,6 @@ dkms.conf
 # Ignore all local history of files
 .history
 .ionide
+
+## Tests
+test/deepc_test

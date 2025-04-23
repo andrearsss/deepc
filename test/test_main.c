@@ -1,0 +1,169 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+#include <cblas.h>
+
+#include "matrix.h"
+#include "tests.h"
+
+int main() {
+    MAT_RET ret;
+    Matrix *matrix;
+    Matrix *matrix2;
+    Matrix *matrix_dot;
+    double *A;
+    double *B;
+    double *C;
+
+    // Array of test cases
+    TestCase tests[] = {
+        {"Original 3x2 * 2x3", A1_f, B1_f, 3, 3, 2},
+        {"Square 2x2 * 2x2", A2_f, B2_f, 2, 2, 2},
+        {"Rectangle 2x3 * 3x1", A3_f, B3_f, 2, 1, 3},
+        {"Zero Matrix 2x2 * 2x2", A4_f, B4_f, 2, 2, 2},
+        {"Rectangle 1x4 * 4x2", A5_f, B5_f, 1, 2, 4},
+        {"Identity 3x3 * Identity 3x3", A6_f, B6_f, 3, 3, 3},
+        {"Non-Square 4x2 * 2x3", A7_f, B7_f, 4, 3, 2},
+        {"Large Diagonal 5x5 * Identity 5x5", A8_f, B8_f, 5, 5, 5}
+    };
+    int num_tests = sizeof(tests) / sizeof(tests[0]);
+    int overall_success = 1;
+
+    printf("Starting Matrix Library Test...\n");
+    printf("===============================\n\n");
+
+    for (int t = 0; t < num_tests; ++t) {
+        TestCase currentTest = tests[t];
+        printf("--- Test Case %d: %s ---\n", t + 1, currentTest.name);
+        printf("Dimensions: A(%d x %d), B(%d x %d)\n",
+               currentTest.m, currentTest.k, currentTest.k, currentTest.n);
+        
+        int test_passed = 1;
+
+        if ((ret = mat_create(currentTest.A_f, currentTest.m, currentTest.k, &matrix)) != MAT_SUCCESS) {
+            fprintf(stderr, "Test %d FAILED: mat_create (A) error: ", t + 1);
+            mat_print_error(ret);
+            test_passed = 0;
+            goto cleanup;
+        }
+        if ((ret = mat_create(currentTest.B_f, currentTest.k, currentTest.n, &matrix2)) != MAT_SUCCESS) {
+            fprintf(stderr, "Test %d FAILED: mat_create (B) error: ", t + 1);
+            mat_print_error(ret);
+            test_passed = 0;
+            goto cleanup;
+        }
+
+        printf("\nmat_dot Result:\n");
+        if ((ret = mat_dot(matrix, matrix2, &matrix_dot)) != MAT_SUCCESS) {
+            fprintf(stderr, "Test %d FAILED: mat_dot error: ", t + 1);
+            mat_print_error(ret);
+            test_passed = 0;
+            goto cleanup;
+        }
+        mat_print(matrix_dot);
+        printf("\n");
+
+        // --- BLAS Comparison ---
+
+        int size_A = currentTest.m * currentTest.k;
+        int size_B = currentTest.k * currentTest.n;
+        int size_C = currentTest.m * currentTest.n;
+
+        A = (double*)malloc(size_A * sizeof(double));
+        B = (double*)malloc(size_B * sizeof(double));
+        C = (double*)malloc(size_C * sizeof(double));
+
+        if (!A || !B || !C) {
+             fprintf(stderr, "Test %d FAILED: Memory allocation error for BLAS arrays.\n", t+1);
+             test_passed = 0;
+             goto cleanup;
+        }
+
+        // Cast float input arrays to double for BLAS
+        for (int i = 0; i < size_A; ++i) {
+            A[i] = (double)currentTest.A_f[i];
+        }
+        for (int i = 0; i < size_B; ++i) {
+            B[i] = (double)currentTest.B_f[i];
+        }
+
+        // Leading dimensions for RowMajor order
+        // lda = number of columns in A = k
+        // ldb = number of columns in B = n
+        // ldc = number of columns in C = n
+        int lda = currentTest.k;
+        int ldb = currentTest.n;
+        int ldc = currentTest.n;
+
+        // Perform matrix multiplication using BLAS dgemm
+        // C = alpha*A*B + beta*C
+        // Here: C = 1.0 * A * B + 0.0 * C
+        cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,
+                    currentTest.m, currentTest.n, currentTest.k,
+                    1.0, A, lda, B, ldb, 0.0, C, ldc);
+
+        printf("BLAS Result (cblas_dgemm):\n");
+        for (int i = 0; i < currentTest.m; i++) {
+            for (int j = 0; j < currentTest.n; j++) {
+                 printf("%8.2f%s", C[i * ldc + j], (j == currentTest.n - 1) ? "" : " ");
+            }
+             printf("\n");
+        }
+        printf("\n");
+
+        // --- Check Correctness ---
+        // Compare results element by element with tolerance
+        float value_custom;
+        double value_blas;
+        float tolerance = 1e-6f;
+
+        for (int i = 0; i < currentTest.m; ++i) {
+            for (int j = 0; j < currentTest.n; ++j) {
+                if ((ret = mat_get(matrix_dot, i, j, &value_custom)) != MAT_SUCCESS) {
+                    fprintf(stderr, "Test %d FAILED: mat_get error at (%d, %d): ", t+1, i, j);
+                    mat_print_error(ret);
+                    test_passed = 0;
+                    goto cleanup; 
+                }
+                value_blas = C[i * ldc + j];
+
+                if (fabsf((float)value_blas - value_custom) > tolerance) {
+                    fprintf(stderr, "\nTest %d FAILED: Mismatch at index (%d, %d)\n", t+1, i, j);
+                    fprintf(stderr, "  Custom Library Value: %.6f\n", value_custom);
+                    fprintf(stderr, "  BLAS Value:           %.6f\n", value_blas);
+                    test_passed = 0;
+                    goto cleanup;
+                }
+            }
+        }
+
+    cleanup:
+        free(A);
+        free(B);
+        free(C);
+        A = B = C = NULL;
+
+        mat_destroy(matrix);
+        mat_destroy(matrix2);
+        mat_destroy(matrix_dot);
+        matrix = matrix2 = matrix_dot = NULL;
+
+        if (test_passed) {
+            printf("--- Test Case %d PASSED ---\n\n", t + 1);
+        } else {
+            printf("--- Test Case %d FAILED ---\n\n", t + 1);
+            overall_success = 0;
+        }
+    }
+
+    printf("===============================\n");
+    if (overall_success) {
+        printf("All tests PASSED successfully!\n");
+    } else {
+        printf("One or more tests FAILED!\n");
+    }
+    printf("===============================\n");
+
+    return overall_success ? 0 : 1;
+}

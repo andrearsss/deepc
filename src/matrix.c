@@ -20,7 +20,7 @@ static MAT_RET mat_ew_op(Matrix * m1, const Matrix * m2, int op);
 MAT_RET mat_create(const float * data, int nr, int nc, Matrix ** m) {
     /*
         Memory allocation:
-        [struct = int + int + float*]
+        [nr, nc = int, int]
         [data = n_elements * float]
     */
     size_t total_size;
@@ -49,6 +49,17 @@ MAT_RET mat_copy(const Matrix * m, Matrix ** m_copy) {
         return MAT_NULL_POINTER;
 
     return mat_create(m->data, m->n_rows, m->n_cols, m_copy);
+}
+
+MAT_RET mat_get(const Matrix * m, int i, int j, float * out) {
+    if (m == NULL || out == NULL)
+        return MAT_NULL_POINTER;
+
+    if (i < 0 || i >= m->n_rows || j < 0 || j >= m->n_cols)
+        return MAT_INVALID_DIM;
+
+    *out = m->data[i * m->n_cols + j];
+    return MAT_SUCCESS;
 }
 
 // O(N*M)
@@ -129,7 +140,7 @@ MAT_RET mat_dot(Matrix * m1, const Matrix * m2, Matrix ** m) {
     // O(N1*M2*M1)
     for (i = 0; i < m1_nr*m2_nc; i++) {
         row = i / m2_nc;   // row iterator for m1
-        col = i % m2_nc;   // col iterator for m2_T
+        col = i % m2_nc;   // col iterator for m2
         sum = 0;
         for (j = 0; j < m1_nc; j++) {
             sum += m1->data[row*m1_nc + j] * m2_T->data[col*m1_nc + j];
@@ -154,6 +165,17 @@ inline void mat_destroy(Matrix * m) {
     free(m);
 }
 
+const char * mat_error_string(MAT_RET err) {
+    switch (err) {
+        case MAT_SUCCESS: return "Success";
+        case MAT_NULL_POINTER: return "Null pointer";
+        case MAT_ALLOC_FAILED: return "Allocation failed";        
+        case MAT_INVALID_DIM: return "Invalid dimension(s)";
+        case MAT_INVALID_SHAPE: return "Invalid shape";
+        default: return "Unknown error";
+    }
+}
+
 // private
 
 MAT_RET mat_ew_op(Matrix * m1, const Matrix * m2, int op) {
@@ -165,22 +187,11 @@ MAT_RET mat_ew_op(Matrix * m1, const Matrix * m2, int op) {
     int nr = m1->n_rows;
     int nc = m1->n_cols;
 
-    for (int i = 0; i < nr*nc; i++) { // macro ?
+    for (int i = 0; i < nr*nc; i++) {
         if (op == OP_ADD_EW)
             m1->data[i] += m2->data[i];
         else if (op == OP_MUL_EW)
             m1->data[i] *= m2->data[i];
     }
     return MAT_SUCCESS;
-}
-
-const char * mat_error_string(MAT_RET err) {
-    switch (err) {
-        case MAT_SUCCESS: return "Success";
-        case MAT_NULL_POINTER: return "Null pointer";
-        case MAT_ALLOC_FAILED: return "Allocation failed";        
-        case MAT_INVALID_DIM: return "Invalid dimension(s)";
-        case MAT_INVALID_SHAPE: return "Invalid shape";
-        default: return "Unknown error";
-    }
 }
