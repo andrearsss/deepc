@@ -52,6 +52,7 @@ MAT_RET mat_copy(const Matrix * m, Matrix ** m_copy) {
     return mat_create(m->data, m->n_rows, m->n_cols, m_copy);
 }
 
+// O(N*M)
 MAT_RET mat_transpose(Matrix * m) {
     if (m == NULL)
         return MAT_NULL_POINTER;
@@ -107,33 +108,33 @@ MAT_RET mat_dot(const Matrix * m1, const Matrix * m2, Matrix ** m) {
         return MAT_INVALID_SHAPE;
 
     int ret, i, j, sum, row, col;
-    Matrix * m2_copy;
+    int m1_nr = m1->n_rows;
+    int m1_nc = m1->n_cols;
+    int m2_nc = m2->n_cols;
+    Matrix * m2_T;
 
-    // copy m2 -> m2_copy
-    if ((ret = mat_copy(m2, &m2_copy)) != MAT_SUCCESS) {
+    // copy m2 and transpose -> m2_T
+    // O(N*M)
+    if (((ret = mat_copy(m2, &m2_T)) != MAT_SUCCESS)
+        || ((ret = mat_transpose(m2_T)) != MAT_SUCCESS)) {
         return ret;
     }
-
-    // transpose m2_copy in-place
-    if ((ret = mat_transpose(m2_copy)) != MAT_SUCCESS) {
-        return ret;
-    }
-
-    // m1 = nr1*nc1
-    // m2 = nr2*nc2
+    
     // alloc m = nr1*nc2
-    if ((ret = mat_create(NULL, m1->n_rows, m2->n_cols, m)) != MAT_SUCCESS) {
+    if ((ret = mat_create(NULL, m1_nr, m2_nc, m)) != MAT_SUCCESS) {
         mat_print_error(ret);
         return 0;
     }
 
     // row per row product
-    for (i = 0; i < m1->n_rows*m2->n_cols; i++) {
+    // O(N1*M2*M1)
+    for (i = 0; i < m1_nr*m2_nc; i++) {
+        row = i / m2_nc;   // row iterator for m1
+        col = i % m2_nc;   // col iterator for m2_T
         sum = 0;
-        row = i / m2->n_cols;
-        col = i % m2->n_cols;
-        for (j = 0; j < m2_copy->n_cols; j++)
-            sum += m1->data[row*m1->n_cols + j] * m2_copy->data[col*m2_copy->n_cols + j];
+        for (j = 0; j < m1_nc; j++) {
+            sum += m1->data[row*m1_nc + j] * m2_T->data[col*m1_nc + j];
+        }
         (*m)->data[i] = sum;
     }
 

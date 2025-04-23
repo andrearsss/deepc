@@ -11,8 +11,6 @@ typedef enum {
     MAT_INVALID_SHAPE
 } MAT_RET;
 
-// todo: const
-
 MAT_RET mat_create(const float * data, int n_rows, int n_cols, Matrix ** m);
 MAT_RET mat_copy(const Matrix * m, Matrix ** m_copy);
 MAT_RET mat_transpose(Matrix * m);                                              // in-place transpose

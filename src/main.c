@@ -77,14 +77,14 @@ int main() {
     Matrix * matrix_dot;
     MAT_RET ret;
 
-    const float vec1[] = { 1, 2, 3, 4};
-    const float vec2[] = { 3, 10};
+    const float vec1[] = { 1, 3, 2, 10};
+    const float vec2[] = { 1, 2, 1, 2};
 
     if ((ret = mat_create(vec1, 2, 2, &matrix)) != MAT_SUCCESS) {
         mat_print_error(ret);
         return 0;
     }
-    if ((ret = mat_create(vec2, 2, 1, &matrix2)) != MAT_SUCCESS) {
+    if ((ret = mat_create(vec2, 2, 2, &matrix2)) != MAT_SUCCESS) {
         mat_print_error(ret);
         return 0;
     }
