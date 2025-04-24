@@ -9,13 +9,13 @@
 
 int test1() {
     Matrix * matrix;
-    MAT_RET ret;
+    RET ret;
     const float data[] = { 1, 2, 3.110454,
                      4, 5, 6,
                      7, 8, 9};
     
-    if ((ret = mat_create(data, 3, 3, &matrix)) != MAT_SUCCESS) {
-        mat_print_error(ret);
+    if ((ret = mat_create(data, 3, 3, &matrix)) != SUCCESS) {
+        print_error(ret);
         return 1;
     }
     
@@ -25,8 +25,8 @@ int test1() {
     //mat_print(matrix);
 
     Matrix * matrix2;
-    if ((ret = mat_create(data, 3, 3, &matrix2)) != MAT_SUCCESS) {
-        mat_print_error(ret);
+    if ((ret = mat_create(data, 3, 3, &matrix2)) != SUCCESS) {
+        print_error(ret);
         return 1;
     }
 
@@ -35,8 +35,8 @@ int test1() {
     //printf("+");
     //mat_print(matrix2);
 
-    if ((ret = mat_add_ew(matrix, matrix2)) != MAT_SUCCESS) {
-        mat_print_error(ret);
+    if ((ret = mat_add_ew(matrix, matrix2)) != SUCCESS) {
+        print_error(ret);
         return 1;
     }
 
@@ -48,8 +48,8 @@ int test1() {
     //printf("*");
     //mat_print(matrix2);
 
-    if ((ret = mat_mul_ew(matrix, matrix2)) != MAT_SUCCESS) {
-        mat_print_error(ret);
+    if ((ret = mat_mul_ew(matrix, matrix2)) != SUCCESS) {
+        print_error(ret);
         return 1;
     }
 
@@ -57,16 +57,16 @@ int test1() {
     //mat_print(matrix); 
 
     //printf("\nTranspose:");
-    if ((ret = mat_transpose(matrix)) != MAT_SUCCESS) {
-        mat_print_error(ret);
+    if ((ret = mat_transpose(matrix)) != SUCCESS) {
+        print_error(ret);
         return 1;
     }
     //mat_print(matrix); 
 
     //printf("\nCopy:");
     Matrix * matrix_copy;
-    if ((ret = mat_copy(matrix, &matrix_copy)) != MAT_SUCCESS) {
-        mat_print_error(ret);
+    if ((ret = mat_copy(matrix, &matrix_copy)) != SUCCESS) {
+        print_error(ret);
         return 1;
     }
     //mat_print(matrix_copy);
@@ -78,7 +78,7 @@ int test1() {
 }
 
 int test_dot() {
-    MAT_RET ret;
+    RET ret;
     Matrix *matrix;
     Matrix *matrix2;
     Matrix *matrix_dot;
@@ -111,23 +111,23 @@ int test_dot() {
         
         int test_passed = 1;
 
-        if ((ret = mat_create(currentTest.A, currentTest.m, currentTest.k, &matrix)) != MAT_SUCCESS) {
+        if ((ret = mat_create(currentTest.A, currentTest.m, currentTest.k, &matrix)) != SUCCESS) {
             fprintf(stderr, "Test %d FAILED: mat_create (A) error: ", t + 1);
-            mat_print_error(ret);
+            print_error(ret);
             test_passed = 0;
             goto cleanup;
         }
-        if ((ret = mat_create(currentTest.B, currentTest.k, currentTest.n, &matrix2)) != MAT_SUCCESS) {
+        if ((ret = mat_create(currentTest.B, currentTest.k, currentTest.n, &matrix2)) != SUCCESS) {
             fprintf(stderr, "Test %d FAILED: mat_create (B) error: ", t + 1);
-            mat_print_error(ret);
+            print_error(ret);
             test_passed = 0;
             goto cleanup;
         }
 
         printf("\nmat_dot Result:\n");
-        if ((ret = mat_dot(matrix, matrix2, &matrix_dot)) != MAT_SUCCESS) {
+        if ((ret = mat_dot(matrix, matrix2, &matrix_dot)) != SUCCESS) {
             fprintf(stderr, "Test %d FAILED: mat_dot error: ", t + 1);
-            mat_print_error(ret);
+            print_error(ret);
             test_passed = 0;
             goto cleanup;
         }
@@ -190,9 +190,9 @@ int test_dot() {
 
         for (int i = 0; i < currentTest.m; ++i) {
             for (int j = 0; j < currentTest.n; ++j) {
-                if ((ret = mat_get(matrix_dot, i, j, &value_custom)) != MAT_SUCCESS) {
+                if ((ret = mat_get(matrix_dot, i, j, &value_custom)) != SUCCESS) {
                     fprintf(stderr, "Test %d FAILED: mat_get error at (%d, %d): ", t+1, i, j);
-                    mat_print_error(ret);
+                    print_error(ret);
                     test_passed = 0;
                     goto cleanup; 
                 }
@@ -238,6 +238,55 @@ int test_dot() {
     return overall_success ? 0 : 1;
 }
 
+int test_linear() {
+    Matrix * matrix;
+    Matrix * matrix2;
+    Matrix * bias;
+    Matrix * matrix_linear;
+    RET ret;
+
+    float A[6] = {1, 2, 3, 4, 5, 6};
+
+    float W[6] = {4, 5, 6, 1, 2, 3};
+
+    float b[2] = {-3, -5};
+
+    // A = m*k, W = n*k, b = 1*n
+    int m = 2;
+    int n = 2;
+    int k = 3;
+
+    if ((ret = mat_create(A, m, k, &matrix)) != SUCCESS) {
+        print_error(ret);
+        return 1;
+    }
+    if ((ret = mat_create(W, n, k, &matrix2)) != SUCCESS) {
+        print_error(ret);
+        return 1;
+    }
+    if ((ret = mat_create(b, 1, n, &bias)) != SUCCESS) {
+        print_error(ret);
+        return 1;
+    }
+    mat_print(matrix);
+    mat_print(matrix2);
+    mat_print(bias);
+    printf("\n");
+    
+    if ((ret = mat_linear(matrix, matrix2, bias, &matrix_linear)) != SUCCESS) {
+        print_error(ret);
+        return 1;
+    }
+    mat_print(matrix_linear);
+    printf("\n");
+
+    mat_destroy(matrix);
+    mat_destroy(matrix2);
+    mat_destroy(bias);
+    mat_destroy(matrix_linear);
+    return 0;
+}
+
 int main() {
-    return test1() || test_dot();
+    return test1() || test_dot() || test_linear();
 }

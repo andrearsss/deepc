@@ -2,54 +2,54 @@
 CC = gcc
 F_CC = -Wall -I./include
 F_ASAN = -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer
-F_BLAS = -lopenblas 
+F_BLAS = -lopenblas
 
-# Directories
+# Source files
 SRC_DIR = src
 INCLUDE_DIR = include
 TEST_DIR = test
 
-# Files for main target
-TARGET = deepc
-MAIN_SRC_FILES = $(SRC_DIR)/main.c $(SRC_DIR)/matrix.c
-MAIN_OBJ_FILES = $(MAIN_SRC_FILES:$(SRC_DIR)/%.c=%.o)
+SRC_FILES = $(SRC_DIR)/main.c $(SRC_DIR)/matrix.c $(SRC_DIR)/dense.c $(SRC_DIR)/error.c
+OBJ_FILES = $(SRC_FILES:.c=.o)
 
-# Files for test target
-TEST_TARGET = $(TEST_DIR)/test_main
-TEST_MAIN_SRC = $(TEST_DIR)/test_main.c
-TEST_MAIN_OBJ = $(TEST_MAIN_SRC:.c=.o)
-LIB_SRC = $(SRC_DIR)/matrix.c
-LIB_OBJ = matrix.o
+TEST_SRC_FILES = $(TEST_DIR)/test_main.c $(SRC_DIR)/matrix.c $(SRC_DIR)/dense.c $(SRC_DIR)/error.c
+TEST_OBJ_FILES = $(TEST_SRC_FILES:.c=.o)
 
-all: $(TARGET)
+# Output binaries
+BIN = deepc
+BIN_ASAN = deepc_asan
+BIN_BLAS = deepc_blas
+BIN_TEST = $(TEST_DIR)/test_main
 
-asan: $(MAIN_OBJ_FILES)
-	$(CC) $(MAIN_OBJ_FILES) -o $(TARGET) $(F_ASAN)
+.PHONY: all asan blas test clean
 
-blas: $(MAIN_OBJ_FILES)
-	$(CC) $(MAIN_OBJ_FILES) -o $(TARGET) $(F_BLAS) $(F_ASAN)
+all: $(BIN)
 
-$(TARGET): $(MAIN_OBJ_FILES)
-	$(CC) $(MAIN_OBJ_FILES) -o $(TARGET)
+asan: CFLAGS += $(F_ASAN)
+asan: $(BIN_ASAN)
 
-# --- Test Target ---
-test: $(TEST_TARGET)
-	$(TEST_TARGET) 
+blas: CFLAGS += $(F_ASAN) $(F_BLAS)
+blas: $(BIN_BLAS)
 
-$(TEST_TARGET): $(TEST_MAIN_OBJ) $(LIB_OBJ)
-	$(CC) $^ -o $@ -lopenblas -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer
+test: CFLAGS += -I$(INCLUDE_DIR) $(F_CC) $(F_ASAN) $(F_BLAS)
+test: $(BIN_TEST)
+	$(BIN_TEST)
 
-$(TEST_MAIN_OBJ): $(TEST_MAIN_SRC) $(INCLUDE_DIR)/matrix.h
-	$(CC) $(F_CC) -c $< -o $@
+# Build rules
+$(BIN): $(OBJ_FILES)
+	$(CC) $(F_CC) $^ -o $@
 
-$(LIB_OBJ): $(SRC_DIR)/matrix.c $(INCLUDE_DIR)/matrix.h
-	$(CC) $(F_CC) -c $< -o $@
+$(BIN_ASAN): $(OBJ_FILES)
+	$(CC) $(F_CC) $(F_ASAN) $^ -o $@
 
-# --- Generic rule for object files from src ---
-%.o: $(SRC_DIR)/%.c $(INCLUDE_DIR)/matrix.h
-	$(CC) $(F_CC) -c $< -o $@
+$(BIN_BLAS): $(OBJ_FILES)
+	$(CC) $(F_CC) $(F_ASAN) $(F_BLAS) $^ -o $@
+
+$(BIN_TEST): $(TEST_OBJ_FILES)
+	$(CC) $(F_CC) $(F_ASAN) $(F_BLAS) $^ -o $@
+
+%.o: %.c
+	$(CC) $(F_CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -rf $(MAIN_OBJ_FILES) $(TARGET) $(TEST_TARGET) $(TEST_MAIN_OBJ) $(LIB_OBJ)
-
-.PHONY: all clean asan blas test
+	rm -f $(OBJ_FILES) $(TEST_OBJ_FILES) $(BIN) $(BIN_ASAN) $(BIN_BLAS) $(BIN_TEST)
