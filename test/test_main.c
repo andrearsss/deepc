@@ -7,7 +7,77 @@
 #include "matrix.h"
 #include "tests.h"
 
-int main() {
+int test1() {
+    Matrix * matrix;
+    MAT_RET ret;
+    const float data[] = { 1, 2, 3.110454,
+                     4, 5, 6,
+                     7, 8, 9};
+    
+    if ((ret = mat_create(data, 3, 3, &matrix)) != MAT_SUCCESS) {
+        mat_print_error(ret);
+        return 1;
+    }
+    
+    //mat_print(matrix);
+    //printf("+5");
+    //mat_add_bias(matrix, 5);
+    //mat_print(matrix);
+
+    Matrix * matrix2;
+    if ((ret = mat_create(data, 3, 3, &matrix2)) != MAT_SUCCESS) {
+        mat_print_error(ret);
+        return 1;
+    }
+
+    //printf("\nSum");
+    //mat_print(matrix);
+    //printf("+");
+    //mat_print(matrix2);
+
+    if ((ret = mat_add_ew(matrix, matrix2)) != MAT_SUCCESS) {
+        mat_print_error(ret);
+        return 1;
+    }
+
+    //printf("=");
+    //mat_print(matrix);
+
+    //printf("\nElement-wise product");
+    //mat_print(matrix);
+    //printf("*");
+    //mat_print(matrix2);
+
+    if ((ret = mat_mul_ew(matrix, matrix2)) != MAT_SUCCESS) {
+        mat_print_error(ret);
+        return 1;
+    }
+
+    //printf("=");
+    //mat_print(matrix); 
+
+    //printf("\nTranspose:");
+    if ((ret = mat_transpose(matrix)) != MAT_SUCCESS) {
+        mat_print_error(ret);
+        return 1;
+    }
+    //mat_print(matrix); 
+
+    //printf("\nCopy:");
+    Matrix * matrix_copy;
+    if ((ret = mat_copy(matrix, &matrix_copy)) != MAT_SUCCESS) {
+        mat_print_error(ret);
+        return 1;
+    }
+    //mat_print(matrix_copy);
+    
+    mat_destroy(matrix);
+    mat_destroy(matrix2);
+    mat_destroy(matrix_copy);
+    return 0;
+}
+
+int test_dot() {
     MAT_RET ret;
     Matrix *matrix;
     Matrix *matrix2;
@@ -18,19 +88,19 @@ int main() {
 
     // Array of test cases
     TestCase tests[] = {
-        {"Original 3x2 * 2x3", A1_f, B1_f, 3, 3, 2},
-        {"Square 2x2 * 2x2", A2_f, B2_f, 2, 2, 2},
-        {"Rectangle 2x3 * 3x1", A3_f, B3_f, 2, 1, 3},
-        {"Zero Matrix 2x2 * 2x2", A4_f, B4_f, 2, 2, 2},
-        {"Rectangle 1x4 * 4x2", A5_f, B5_f, 1, 2, 4},
-        {"Identity 3x3 * Identity 3x3", A6_f, B6_f, 3, 3, 3},
-        {"Non-Square 4x2 * 2x3", A7_f, B7_f, 4, 3, 2},
-        {"Large Diagonal 5x5 * Identity 5x5", A8_f, B8_f, 5, 5, 5}
+        {"Original 3x2 * 2x3", A1, B1, 3, 3, 2},
+        {"Square 2x2 * 2x2", A2, B2, 2, 2, 2},
+        {"Rectangle 2x3 * 3x1", A3, B3, 2, 1, 3},
+        {"Zero Matrix 2x2 * 2x2", A4, B4, 2, 2, 2},
+        {"Rectangle 1x4 * 4x2", A5, B5, 1, 2, 4},
+        {"Identity 3x3 * Identity 3x3", A6, B6, 3, 3, 3},
+        {"Non-Square 4x2 * 2x3", A7, B7, 4, 3, 2},
+        {"Large Diagonal 5x5 * Identity 5x5", A8, B8, 5, 5, 5}
     };
     int num_tests = sizeof(tests) / sizeof(tests[0]);
     int overall_success = 1;
 
-    printf("Starting Matrix Library Test...\n");
+    printf("Starting Matrix Dot Test...\n");
     printf("===============================\n\n");
 
     for (int t = 0; t < num_tests; ++t) {
@@ -41,13 +111,13 @@ int main() {
         
         int test_passed = 1;
 
-        if ((ret = mat_create(currentTest.A_f, currentTest.m, currentTest.k, &matrix)) != MAT_SUCCESS) {
+        if ((ret = mat_create(currentTest.A, currentTest.m, currentTest.k, &matrix)) != MAT_SUCCESS) {
             fprintf(stderr, "Test %d FAILED: mat_create (A) error: ", t + 1);
             mat_print_error(ret);
             test_passed = 0;
             goto cleanup;
         }
-        if ((ret = mat_create(currentTest.B_f, currentTest.k, currentTest.n, &matrix2)) != MAT_SUCCESS) {
+        if ((ret = mat_create(currentTest.B, currentTest.k, currentTest.n, &matrix2)) != MAT_SUCCESS) {
             fprintf(stderr, "Test %d FAILED: mat_create (B) error: ", t + 1);
             mat_print_error(ret);
             test_passed = 0;
@@ -82,10 +152,10 @@ int main() {
 
         // Cast float input arrays to double for BLAS
         for (int i = 0; i < size_A; ++i) {
-            A[i] = (double)currentTest.A_f[i];
+            A[i] = (double)currentTest.A[i];
         }
         for (int i = 0; i < size_B; ++i) {
-            B[i] = (double)currentTest.B_f[i];
+            B[i] = (double)currentTest.B[i];
         }
 
         // Leading dimensions for RowMajor order
@@ -166,4 +236,8 @@ int main() {
     printf("===============================\n");
 
     return overall_success ? 0 : 1;
+}
+
+int main() {
+    return test1() || test_dot();
 }

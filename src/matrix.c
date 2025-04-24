@@ -15,7 +15,7 @@ struct matrix {
     float data[];
 };
 
-static MAT_RET mat_ew_op(Matrix * m1, const Matrix * m2, int op);
+static MAT_RET _mat_ew_op(Matrix * m1, const Matrix * m2, int op);
 
 MAT_RET mat_create(const float * data, int nr, int nc, Matrix ** m) {
     /*
@@ -44,6 +44,10 @@ MAT_RET mat_create(const float * data, int nr, int nc, Matrix ** m) {
     return MAT_SUCCESS;
 }
 
+inline void mat_destroy(Matrix * m) {
+    free(m);
+}
+
 MAT_RET mat_copy(const Matrix * m, Matrix ** m_copy) {
     if (m == NULL)
         return MAT_NULL_POINTER;
@@ -62,7 +66,6 @@ MAT_RET mat_get(const Matrix * m, int i, int j, float * out) {
     return MAT_SUCCESS;
 }
 
-// O(N*M)
 MAT_RET mat_transpose(Matrix * m) {
     if (m == NULL)
         return MAT_NULL_POINTER;
@@ -104,11 +107,11 @@ MAT_RET mat_add_bias(Matrix * m, int bias) {
 }
 
 MAT_RET mat_add_ew(Matrix * m1, const Matrix * m2) {
-    return mat_ew_op(m1, m2, OP_ADD_EW);
+    return _mat_ew_op(m1, m2, OP_ADD_EW);
 }
 
 MAT_RET mat_mul_ew(Matrix * m1, const Matrix * m2) {
-    return mat_ew_op(m1, m2, OP_MUL_EW);
+    return _mat_ew_op(m1, m2, OP_MUL_EW);
 }
 
 MAT_RET mat_dot(Matrix * m1, const Matrix * m2, Matrix ** m) {
@@ -161,10 +164,6 @@ void mat_print(const Matrix * m) {
     }
 }
 
-inline void mat_destroy(Matrix * m) {
-    free(m);
-}
-
 const char * mat_error_string(MAT_RET err) {
     switch (err) {
         case MAT_SUCCESS: return "Success";
@@ -178,7 +177,7 @@ const char * mat_error_string(MAT_RET err) {
 
 // private
 
-MAT_RET mat_ew_op(Matrix * m1, const Matrix * m2, int op) {
+MAT_RET _mat_ew_op(Matrix * m1, const Matrix * m2, int op) {
     if (m1 == NULL || m2 == NULL)
         return MAT_NULL_POINTER;
     if ((m1->n_rows != m2->n_rows) || (m1->n_cols != m2->n_cols))

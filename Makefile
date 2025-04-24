@@ -1,6 +1,8 @@
 # Compiler and flags
 CC = gcc
-CFLAGS = -Wall -I./include
+F_CC = -Wall -I./include
+F_ASAN = -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer
+F_BLAS = -lopenblas 
 
 # Directories
 SRC_DIR = src
@@ -22,10 +24,10 @@ LIB_OBJ = matrix.o
 all: $(TARGET)
 
 asan: $(MAIN_OBJ_FILES)
-	$(CC) $(MAIN_OBJ_FILES) -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer -o $(TARGET)
+	$(CC) $(MAIN_OBJ_FILES) -o $(TARGET) $(F_ASAN)
 
 blas: $(MAIN_OBJ_FILES)
-	$(CC) $(MAIN_OBJ_FILES) -o $(TARGET) -lopenblas -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer
+	$(CC) $(MAIN_OBJ_FILES) -o $(TARGET) $(F_BLAS) $(F_ASAN)
 
 $(TARGET): $(MAIN_OBJ_FILES)
 	$(CC) $(MAIN_OBJ_FILES) -o $(TARGET)
@@ -38,15 +40,14 @@ $(TEST_TARGET): $(TEST_MAIN_OBJ) $(LIB_OBJ)
 	$(CC) $^ -o $@ -lopenblas -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer
 
 $(TEST_MAIN_OBJ): $(TEST_MAIN_SRC) $(INCLUDE_DIR)/matrix.h
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(F_CC) -c $< -o $@
 
-# Compile matrix.o from src/matrix.c for both main and test targets
 $(LIB_OBJ): $(SRC_DIR)/matrix.c $(INCLUDE_DIR)/matrix.h
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(F_CC) -c $< -o $@
 
 # --- Generic rule for object files from src ---
 %.o: $(SRC_DIR)/%.c $(INCLUDE_DIR)/matrix.h
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(F_CC) -c $< -o $@
 
 clean:
 	rm -rf $(MAIN_OBJ_FILES) $(TARGET) $(TEST_TARGET) $(TEST_MAIN_OBJ) $(LIB_OBJ)
