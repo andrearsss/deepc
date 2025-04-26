@@ -161,8 +161,8 @@ RET mat_linear_activation(const Matrix * m1, const Matrix * m2_T, const Matrix *
         return INVALID_SHAPE;
 
     RET ret;
-    float b;
-    int i, j, sum, row, col;
+    float sum, b;
+    int i, j, row, col;
     int m1_nr = m1->n_rows;
     int m2_nr = m2_T->n_rows;
     int m1_nc = m1->n_cols;
@@ -183,6 +183,17 @@ RET mat_linear_activation(const Matrix * m1, const Matrix * m2_T, const Matrix *
         } 
         (*m_out)->data[i] = (act == NULL) ? sum : act(sum);     // apply an optional activation function
     }
+
+    // debug
+    printf("\nRow per row product between");
+    mat_print(m1);
+    mat_print(m2_T);
+
+    printf("\nbias:");
+    mat_print(bias);
+
+    printf("\nResult:");
+    mat_print(*m_out);
     return SUCCESS;
 }
 
@@ -191,7 +202,7 @@ void mat_print(const Matrix * m) {
         return;
     printf("\n");
     for (int i = 0; i < m->n_rows*m->n_cols; i++) {
-        printf("%8.2f%s", m->data[i], (((i+1) % (m->n_cols)) == 0) ? "\n" : " ");
+        printf("%11.10f%s", m->data[i], (((i+1) % (m->n_cols)) == 0) ? "\n" : " ");
     }
 }
 

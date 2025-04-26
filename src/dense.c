@@ -27,6 +27,9 @@ RET dense_create(const float * W, const float * b, int n_input, int n_neurons, i
         return ALLOC_FAILED;    
     
     // todo: init if W and b null
+    //if (W == NULL) {
+
+    //}
 
     if ((ret = mat_create(W, n_neurons, n_input, &(*d)->W)) != SUCCESS
         || (ret = mat_create(b, 1, n_neurons, &(*d)->b)) != SUCCESS)
