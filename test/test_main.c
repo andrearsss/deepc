@@ -5,6 +5,8 @@
 #include <cblas.h>
 
 #include "matrix.h"
+#include "dense.h"
+#include "activations.h"
 #include "tests.h"
 
 int test1() {
@@ -100,7 +102,7 @@ int test_dot() {
     int num_tests = sizeof(tests) / sizeof(tests[0]);
     int overall_success = 1;
 
-    printf("Starting Matrix Dot Test...\n");
+    printf("Starting matrix dot test\n");
     printf("===============================\n\n");
 
     for (int t = 0; t < num_tests; ++t) {
@@ -166,9 +168,9 @@ int test_dot() {
         int ldb = currentTest.n;
         int ldc = currentTest.n;
 
-        // Perform matrix multiplication using BLAS dgemm
+        // BLAS dgemm
         // C = alpha*A*B + beta*C
-        // Here: C = 1.0 * A * B + 0.0 * C
+        // C = 1.0 * A * B + 0.0 * C
         cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,
                     currentTest.m, currentTest.n, currentTest.k,
                     1.0, A, lda, B, ldb, 0.0, C, ldc);
@@ -182,8 +184,7 @@ int test_dot() {
         }
         printf("\n");
 
-        // --- Check Correctness ---
-        // Compare results element by element with tolerance
+        // Check correctness comparing results with tolerance
         float value_custom;
         double value_blas;
         float tolerance = 1e-6f;
@@ -198,7 +199,7 @@ int test_dot() {
                 }
                 value_blas = C[i * ldc + j];
 
-                if (fabsf((float)value_blas - value_custom) > tolerance) {
+                if (fabsf(value_blas - (double) value_custom) > tolerance) {
                     fprintf(stderr, "\nTest %d FAILED: Mismatch at index (%d, %d)\n", t+1, i, j);
                     fprintf(stderr, "  Custom Library Value: %.6f\n", value_custom);
                     fprintf(stderr, "  BLAS Value:           %.6f\n", value_blas);
@@ -256,6 +257,7 @@ int test_linear() {
     int n = 2;
     int k = 3;
 
+    printf("\nStarting matrix linear combination test\n==================================");
     if ((ret = mat_create(A, m, k, &matrix)) != SUCCESS) {
         print_error(ret);
         return 1;
@@ -268,15 +270,19 @@ int test_linear() {
         print_error(ret);
         return 1;
     }
+    printf("\nInput:");
     mat_print(matrix);
+    printf("\nW:");
     mat_print(matrix2);
+    printf("\nb:");
     mat_print(bias);
     printf("\n");
     
-    if ((ret = mat_linear(matrix, matrix2, bias, &matrix_linear)) != SUCCESS) {
+    if ((ret = mat_linear_activation(matrix, matrix2, bias, NO_ACT, &matrix_linear)) != SUCCESS) {
         print_error(ret);
         return 1;
     }
+    printf("\nResult::");
     mat_print(matrix_linear);
     printf("\n");
 
@@ -287,6 +293,112 @@ int test_linear() {
     return 0;
 }
 
+int test_dense() {
+
+    RET ret;
+    Dense * d;
+    Matrix * input;
+    Matrix * output;
+
+    printf("Starting dense forward test\n");
+    printf("===============================\n\n");
+
+    const float inp[6] = {1, 2, 3,          // 2 samples of size 3
+                         4, 5, 6}; 
+    const float W[9] = {1, 2 , 3,           // 3 rows = 3 neurons
+                        4, 5, 6,
+                        7, 8, 9};
+    const float b[3] = {-16, 2, 3};           // 1 per neuron
+
+    if ((ret = dense_create(W, b, 3, 3, NO_ACT, &d)) != SUCCESS)
+        return ret;
+
+    if ((ret = mat_create(inp, 2, 3, &input) ) != SUCCESS)
+        return ret;
+
+    if ((ret = dense_forward(d, input, &output)) != SUCCESS)
+        return ret;
+        
+    mat_print(output);
+
+    // check using BLAS
+
+    double input_d[6];
+    double W_d[9];
+    double b_d[3];
+
+    for (int i = 0; i < 6; ++i) input_d[i] = (double) inp[i];
+    for (int i = 0; i < 9; ++i) W_d[i] = (double) W[i];
+    for (int i = 0; i < 3; ++i) b_d[i] = (double) b[i];
+
+    // output matrix
+    double output_d[6] = {0}; // 2 samples x 3 neurons
+
+    // output = input * W using cblas_dgemm
+    // cblas_dgemm expects column-major by default
+    cblas_dgemm(
+        CblasRowMajor,    // storage order
+        CblasNoTrans,     // input is not transposed
+        CblasTrans,       // W is transposed
+        2,                // number of rows of input (M)
+        3,                // number of columns of W (N)
+        3,                // shared dimension (K)
+        1.0,              // alpha
+        input_d,          // A
+        3,                // lda (leading dimension of A)
+        W_d,              // B
+        3,                // ldb (leading dimension of B)
+        0.0,              // beta
+        output_d,         // C
+        3                 // ldc (leading dimension of C)
+    );
+
+    // add bias manually
+    for (int i = 0; i < 2; ++i) {
+        for (int j = 0; j < 3; ++j) {
+            output_d[i * 3 + j] += b_d[j];
+        }
+    }
+    printf("\nBLAS output:\n");
+    for (int i = 0; i < 2; ++i) {
+        for (int j = 0; j < 3; ++j) {
+            printf("%8.4f ", output_d[i * 3 + j]);
+        }
+        printf("\n");
+    }
+
+    // check elem by elem
+    int success = 1;
+    float value_custom;
+    const double tolerance = 1e-6;
+
+    for (int i = 0; i < 2; ++i) {
+        for (int j = 0; j < 3; ++j) {
+            if ((ret = mat_get(output, i, j, &value_custom)) != SUCCESS){
+                print_error(ret);
+                return 1;
+            }
+            double value_blas = output_d[i * 3 + j];
+            if (fabs((double) value_custom - value_blas) > tolerance) {
+                printf("Mismatch at (%d, %d): lib = %f, blas = %f\n", i, j, value_custom, value_blas);
+                success = 0;
+            }
+        }
+    }
+
+    mat_destroy(input);
+    mat_destroy(output);
+    dense_destroy(d);
+
+    if (success) {
+        printf("\nTest PASSED\n===============================\n");
+        return 0;
+    } else {
+        printf("\nTest FAILED: outputs differ\n==========================\n");
+        return 1;
+    }
+}
+
 int main() {
-    return test1() || test_dot() || test_linear();
+    return test1() || test_dot() || test_linear() || test_dense();
 }

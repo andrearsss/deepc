@@ -73,4 +73,7 @@ dkms.conf
 .ionide
 
 ## Tests
-test/deepc_test
+test/test_main
+
+## custom executables
+deepc_blas

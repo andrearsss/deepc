@@ -13,7 +13,7 @@ RET mat_add_bias(Matrix * m, int bias);                                         
 RET mat_add_ew(Matrix * m1, const Matrix * m2);                                             // element-wise sum
 RET mat_mul_ew(Matrix * m1, const Matrix * m2);                                             // element-wise product
 RET mat_dot(Matrix * m1, const Matrix * m2, Matrix ** m);                                   // dot product
-RET mat_linear(const Matrix * m1, const Matrix * m2_T, const Matrix * bias, Matrix ** m);   // m1*m2 + b
+RET mat_linear_activation(const Matrix * m1, const Matrix * m2_T, const Matrix * bias, float (*act)(float), Matrix ** m_out);   // act(m1*m2 + b)
   
 void mat_print(const Matrix * m);
 void mat_destroy(Matrix * m);     

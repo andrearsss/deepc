@@ -9,10 +9,10 @@ SRC_DIR = src
 INCLUDE_DIR = include
 TEST_DIR = test
 
-SRC_FILES = $(SRC_DIR)/main.c $(SRC_DIR)/matrix.c $(SRC_DIR)/dense.c $(SRC_DIR)/error.c
+SRC_FILES = $(SRC_DIR)/main.c $(SRC_DIR)/matrix.c $(SRC_DIR)/dense.c $(SRC_DIR)/error.c $(SRC_DIR)/activations.c
 OBJ_FILES = $(SRC_FILES:.c=.o)
 
-TEST_SRC_FILES = $(TEST_DIR)/test_main.c $(SRC_DIR)/matrix.c $(SRC_DIR)/dense.c $(SRC_DIR)/error.c
+TEST_SRC_FILES = $(TEST_DIR)/test_main.c $(SRC_DIR)/matrix.c $(SRC_DIR)/dense.c $(SRC_DIR)/error.c $(SRC_DIR)/activations.c
 TEST_OBJ_FILES = $(TEST_SRC_FILES:.c=.o)
 
 # Output binaries
