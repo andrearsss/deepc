@@ -77,3 +77,4 @@ test/test_main
 
 ## custom executables
 deepc_blas
+deepc_asan

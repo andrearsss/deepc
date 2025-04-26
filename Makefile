@@ -1,6 +1,7 @@
 # Compiler and flags
 CC = gcc
 F_CC = -Wall -I./include
+F_DEBUG = -g
 F_ASAN = -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer
 F_BLAS = -lopenblas
 
@@ -34,6 +35,9 @@ blas: $(BIN_BLAS)
 test: CFLAGS += -I$(INCLUDE_DIR) $(F_CC) $(F_ASAN) $(F_BLAS)
 test: $(BIN_TEST)
 	$(BIN_TEST)
+
+debug: CFLAGS += $(F_DEBUG)
+debug: $(BIN)
 
 # Build rules
 $(BIN): $(OBJ_FILES)

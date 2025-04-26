@@ -40,11 +40,7 @@ RET dense_create(const float * W, const float * b, int n_input, int n_neurons, i
 }
 
 RET dense_forward(Dense * d, const Matrix * input, Matrix ** out) {
-    RET ret;
-    int act = d->activation;
-    if ((ret = mat_linear_activation(input, d->W, d->b, ACTIVATIONS[act], out)) != SUCCESS)
-        return ret;
-    return SUCCESS;
+    return mat_linear_activation(input, d->W, d->b, ACTIVATIONS[d->activation], out);
 }
 
 void dense_destroy(Dense * d) {
