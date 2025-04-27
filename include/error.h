@@ -7,7 +7,8 @@ typedef enum {
     ALLOC_FAILED,
     INVALID_DIM,
     INVALID_SHAPE,
-    INVALID_ACTIVATION
+    INVALID_ACTIVATION,
+    NUMERICAL_ERROR     // nan, inf...
 } RET;
 
 const char * error_string(RET err);

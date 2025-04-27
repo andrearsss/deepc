@@ -12,8 +12,8 @@ struct dense {
     int activation;
     int n_input;            // cols of W
     int n_neurons;          // rows of W
-    Matrix * W;             // dims: n_neurons * n_input
-    Matrix * b;             // dims: 1 * n_neurons
+    Matrix * W;             // n_neurons * n_input
+    Matrix * b;             // 1 * n_neurons
 };
 
 RET dense_create(const float * W, const float * b, int n_input, int n_neurons, int activation, Dense ** d) {

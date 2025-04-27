@@ -1,7 +1,8 @@
-#include "matrix.h"
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdio.h>
+#include "math.h"
+#include "matrix.h"
 
 #define MAX_ROWS 1000
 #define MAX_COLS 1000
@@ -100,8 +101,12 @@ RET mat_add_bias(Matrix * m, int bias) {
         return NULL_POINTER;
     if (bias == 0)
         return SUCCESS;
+    float tmp;
     for (int i = 0; i < m->n_rows*m->n_cols; i++) {
         m->data[i] += bias;
+        tmp = m->data[i];
+        if (isnan(tmp) || isinf(tmp))
+            return NUMERICAL_ERROR;
     }
     return SUCCESS;
 }
@@ -119,8 +124,9 @@ RET mat_dot(Matrix * m1, const Matrix * m2, Matrix ** m) {
         return NULL_POINTER;
     if (m1->n_cols != m2->n_rows)
         return INVALID_SHAPE;
-
-    int ret, i, j, sum, row, col;
+        
+    float sum;
+    int ret, i, j, row, col;
     int m1_nr = m1->n_rows;
     int m1_nc = m1->n_cols;
     int m2_nc = m2->n_cols;
@@ -146,6 +152,8 @@ RET mat_dot(Matrix * m1, const Matrix * m2, Matrix ** m) {
         for (j = 0; j < m1_nc; j++) {
             sum += m1->data[row*m1_nc + j] * m2_T->data[col*m1_nc + j];
         }
+        if (isnan(sum) || isinf(sum))
+            return NUMERICAL_ERROR;
         (*m)->data[i] = sum;
     }
 
@@ -180,8 +188,10 @@ RET mat_linear_activation(const Matrix * m1, const Matrix * m2_T, const Matrix *
         sum = b;
         for (j = 0; j < m1_nc; j++) {
             sum += m1->data[row*m1_nc + j] * m2_T->data[col*m1_nc + j];
-        } 
-        (*m_out)->data[i] = (act == NULL) ? sum : act(sum);     // apply an optional activation function
+        }
+        if (isnan(sum) || isinf(sum))
+            return NUMERICAL_ERROR;
+        (*m_out)->data[i] = (act == NULL) ? sum : act(sum);     // optional activation function
     }
 
     // debug
@@ -214,14 +224,19 @@ RET _mat_ew_op(Matrix * m1, const Matrix * m2, int op) {
     if ((m1->n_rows != m2->n_rows) || (m1->n_cols != m2->n_cols))
         return INVALID_SHAPE;
 
+    float tmp;
     int nr = m1->n_rows;
     int nc = m1->n_cols;
 
     for (int i = 0; i < nr*nc; i++) {
-        if (op == OP_ADD_EW)
+        if (op == OP_ADD_EW){
             m1->data[i] += m2->data[i];
-        else if (op == OP_MUL_EW)
+        } else if (op == OP_MUL_EW) {
             m1->data[i] *= m2->data[i];
+        }
+        tmp = m1->data[i];
+        if (isnan(tmp) || isinf(tmp))
+            return NUMERICAL_ERROR;
     }
     return SUCCESS;
 }
