@@ -2,12 +2,24 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <time.h>
 #include <cblas.h>
 
 #include "matrix.h"
 #include "dense.h"
 #include "activations.h"
 #include "tests.h"
+
+#define N_SAMPLES 2
+#define INPUT_SIZE 3
+#define N_LAYERS 5
+#define N_NEURONS 20
+
+void fill_random(float *arr, int size, float scale) {
+    for (int i = 0; i < size; i++) {
+        arr[i] = ((float)rand() / RAND_MAX) * 2 * scale - scale;  // uniform in [-scale, scale]
+    }
+}
 
 int test1() {
     Matrix * matrix;
@@ -16,7 +28,7 @@ int test1() {
                      4, 5, 6,
                      7, 8, 9};
     
-    if ((ret = mat_create(data, 3, 3, &matrix)) != SUCCESS) {
+    if ((ret = mat_create(data, 3, 3, NO_INIT, &matrix)) != SUCCESS) {
         print_error(ret);
         return 1;
     }
@@ -27,7 +39,7 @@ int test1() {
     //mat_print(matrix);
 
     Matrix * matrix2;
-    if ((ret = mat_create(data, 3, 3, &matrix2)) != SUCCESS) {
+    if ((ret = mat_create(data, 3, 3, NO_INIT, &matrix2)) != SUCCESS) {
         print_error(ret);
         return 1;
     }
@@ -113,13 +125,13 @@ int test_dot() {
         
         int test_passed = 1;
 
-        if ((ret = mat_create(currentTest.A, currentTest.m, currentTest.k, &matrix)) != SUCCESS) {
+        if ((ret = mat_create(currentTest.A, currentTest.m, currentTest.k, NO_INIT, &matrix)) != SUCCESS) {
             fprintf(stderr, "Test %d FAILED: mat_create (A) error: ", t + 1);
             print_error(ret);
             test_passed = 0;
             goto cleanup;
         }
-        if ((ret = mat_create(currentTest.B, currentTest.k, currentTest.n, &matrix2)) != SUCCESS) {
+        if ((ret = mat_create(currentTest.B, currentTest.k, currentTest.n, NO_INIT, &matrix2)) != SUCCESS) {
             fprintf(stderr, "Test %d FAILED: mat_create (B) error: ", t + 1);
             print_error(ret);
             test_passed = 0;
@@ -258,15 +270,15 @@ int test_linear() {
     int k = 3;
 
     printf("\nStarting matrix linear combination test\n==================================");
-    if ((ret = mat_create(A, m, k, &matrix)) != SUCCESS) {
+    if ((ret = mat_create(A, m, k, NO_INIT, &matrix)) != SUCCESS) {
         print_error(ret);
         return 1;
     }
-    if ((ret = mat_create(W, n, k, &matrix2)) != SUCCESS) {
+    if ((ret = mat_create(W, n, k, NO_INIT, &matrix2)) != SUCCESS) {
         print_error(ret);
         return 1;
     }
-    if ((ret = mat_create(b, 1, n, &bias)) != SUCCESS) {
+    if ((ret = mat_create(b, 1, n, NO_INIT, &bias)) != SUCCESS) {
         print_error(ret);
         return 1;
     }
@@ -313,7 +325,7 @@ int test_dense() {
     if ((ret = dense_create(W, b, 3, 3, NO_ACT, &d)) != SUCCESS)
         return ret;
 
-    if ((ret = mat_create(inp, 2, 3, &input) ) != SUCCESS)
+    if ((ret = mat_create(inp, 2, 3, NO_INIT, &input) ) != SUCCESS)
         return ret;
 
     if ((ret = dense_forward(d, input, &output)) != SUCCESS)
@@ -399,6 +411,73 @@ int test_dense() {
     }
 }
 
+int test_network() {
+
+    RET ret;
+    Dense * network[N_LAYERS];
+    Matrix * input;
+    Matrix * tmp;
+
+    printf("Starting dense forward test\n");
+    printf("===============================\n\n");
+    // random input and weights
+    srand(time(NULL));
+
+    float *inp = (float *) malloc(N_SAMPLES * INPUT_SIZE * sizeof(float));
+    float *W_inp = (float *) malloc(N_NEURONS * INPUT_SIZE * sizeof(float));
+    float *W = (float *) malloc(N_NEURONS * N_NEURONS * sizeof(float));
+    float *b = (float *) malloc(N_NEURONS * sizeof(float));
+    if (!inp || !W || !b) {
+        printf("Memory allocation failed\n");
+        return 1;
+    }
+
+    fill_random(inp, N_SAMPLES * INPUT_SIZE, 1.0f);
+    fill_random(W_inp, N_NEURONS * INPUT_SIZE, 1.0f);
+    fill_random(W, N_NEURONS * N_NEURONS, 1.0f);
+    fill_random(b, N_NEURONS, 1.0f);
+
+    if ((ret = mat_create(inp, N_SAMPLES, INPUT_SIZE, NO_INIT, &input) ) != SUCCESS) {
+        print_error(ret);
+        return 1;
+    }
+
+    // alloc network
+    for (int i = 0; i < N_LAYERS; i++) {
+        //printf("\ndense_create %d/%d", i, N_LAYERS-1);
+        if ((ret = dense_create((i==0) ? W_inp : W, b, (i==0) ? INPUT_SIZE : N_NEURONS, N_NEURONS, NO_ACT, &network[i])) != SUCCESS) {
+            print_error(ret);
+            return -1;
+        }
+    }
+    
+    // forward
+    for (int i = 0; i < N_LAYERS; i++) {
+        //printf("\ndense_forward %d/%d", i, N_LAYERS-1);
+        if ((ret = dense_forward(network[i], input, &tmp)) != SUCCESS) {
+            print_error(ret);
+            return 1;
+        }
+        mat_destroy(input);
+        input = tmp;
+    }
+    
+    printf("\nOutput:");
+    mat_print(tmp);
+
+    // free mem
+    mat_destroy(tmp);
+    for (int i = 0; i < N_LAYERS; i++)
+        dense_destroy(network[i]);
+    
+    free(inp);
+    free(W_inp);
+    free(W);
+    free(b);
+    return 0;
+}
+
+
 int main() {
-    return test1() || test_dot() || test_linear() || test_dense();
+    return test1() || test_dot() || test_linear() || test_dense() || test_network();
 }

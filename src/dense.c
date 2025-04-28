@@ -24,15 +24,10 @@ RET dense_create(const float * W, const float * b, int n_input, int n_neurons, i
     RET ret;
 
     if ((*d = malloc(sizeof(struct dense))) == NULL)
-        return ALLOC_FAILED;    
+        return ALLOC_FAILED;
     
-    // todo: init if W and b null
-    //if (W == NULL) {
-
-    //}
-
-    if ((ret = mat_create(W, n_neurons, n_input, &(*d)->W)) != SUCCESS
-        || (ret = mat_create(b, 1, n_neurons, &(*d)->b)) != SUCCESS)
+    if ((ret = mat_create(W, n_neurons, n_input, (W == NULL) ? HE_INIT : NO_INIT, &(*d)->W)) != SUCCESS  // He initialization if W is null
+        || (ret = mat_create(b, 1, n_neurons, (b == NULL) ? ZERO_INIT : NO_INIT, &(*d)->b)) != SUCCESS)    // 0 init if b is null
         return ret;
 
     (*d)->activation = activation;

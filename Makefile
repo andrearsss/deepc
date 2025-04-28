@@ -4,6 +4,7 @@ F_CC = -Wall -I./include
 F_DEBUG = -g
 F_ASAN = -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer
 F_BLAS = -lopenblas
+F_MATH = -lm
 
 # Source files
 SRC_DIR = src
@@ -41,16 +42,16 @@ debug: $(BIN)
 
 # Build rules
 $(BIN): $(OBJ_FILES)
-	$(CC) $(F_CC) $^ -o $@
+	$(CC) $(F_CC) $^ -o $@ $(F_MATH)
 
 $(BIN_ASAN): $(OBJ_FILES)
-	$(CC) $(F_CC) $(F_ASAN) $^ -o $@
+	$(CC) $(F_CC) $(F_ASAN) $^ -o $@ $(F_MATH)
 
 $(BIN_BLAS): $(OBJ_FILES)
-	$(CC) $(F_CC) $(F_ASAN) $(F_BLAS) $^ -o $@
+	$(CC) $(F_CC) $(F_ASAN) $(F_BLAS) $^ -o $@ $(F_MATH)
 
 $(BIN_TEST): $(TEST_OBJ_FILES)
-	$(CC) $(F_CC) $(F_ASAN) $(F_BLAS) $^ -o $@
+	$(CC) $(F_CC) $(F_ASAN) $(F_BLAS) $^ -o $@ $(F_MATH)
 
 %.o: %.c
 	$(CC) $(F_CC) $(CFLAGS) -c $< -o $@

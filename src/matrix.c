@@ -1,8 +1,10 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdio.h>
-#include "math.h"
+#include <math.h>
 #include "matrix.h"
+
+#define M_PI 3.14159265358979323846
 
 #define MAX_ROWS 1000
 #define MAX_COLS 1000
@@ -16,13 +18,13 @@ struct matrix {
     float data[];
 };
 
+static inline float _random_normal();
+static RET _mat_init(Matrix *m, int init);
 static RET _mat_ew_op(Matrix * m1, const Matrix * m2, int op);
 
-RET mat_create(const float * data, int nr, int nc, Matrix ** m) {
+RET mat_create(const float * data, int nr, int nc, int init, Matrix ** m) {
     /*
-        Memory allocation:
-        [nr, nc = int, int]
-        [data = n_elements * float]
+        Note: init is ignored if a valid data pointer is provided
     */
     size_t total_size;
 
@@ -38,9 +40,11 @@ RET mat_create(const float * data, int nr, int nc, Matrix ** m) {
     (*m)->n_cols = nc;
 
     if (data != NULL) { 
-        for (int i = 0; i < nr*nc; i++) {
+        for (int i = 0; i < nr*nc; i++)
             (*m)->data[i] = data[i];
-        }
+    }
+    else if (init != NO_INIT) {
+        return _mat_init(*m, init);
     }
     return SUCCESS;
 }
@@ -53,7 +57,7 @@ RET mat_copy(const Matrix * m, Matrix ** m_copy) {
     if (m == NULL)
         return NULL_POINTER;
 
-    return mat_create(m->data, m->n_rows, m->n_cols, m_copy);
+    return mat_create(m->data, m->n_rows, m->n_cols, NO_INIT, m_copy);
 }
 
 RET mat_get(const Matrix * m, int i, int j, float * out) {
@@ -140,7 +144,7 @@ RET mat_dot(Matrix * m1, const Matrix * m2, Matrix ** m) {
     }
     
     // alloc m = nr1*nc2
-    if ((ret = mat_create(NULL, m1_nr, m2_nc, m)) != SUCCESS)
+    if ((ret = mat_create(NULL, m1_nr, m2_nc, NO_INIT, m)) != SUCCESS)
         return ret;
 
     // row per row product
@@ -164,7 +168,8 @@ RET mat_dot(Matrix * m1, const Matrix * m2, Matrix ** m) {
 RET mat_linear_activation(const Matrix * m1, const Matrix * m2_T, const Matrix * bias, float (*act)(float), Matrix ** m_out) {
     // Performs row-wise dot product while adding bias,
     // then applies an optional activation function (act)
-
+    if (!m1 || !m2_T || !bias || !m_out)
+        return NULL_POINTER;
     if (m1->n_cols != m2_T->n_cols || bias->n_cols != m2_T->n_rows || bias->n_rows != 1)
         return INVALID_SHAPE;
 
@@ -175,7 +180,7 @@ RET mat_linear_activation(const Matrix * m1, const Matrix * m2_T, const Matrix *
     int m2_nr = m2_T->n_rows;
     int m1_nc = m1->n_cols;
 
-    if ((ret = mat_create(NULL, m1_nr, m2_nr, m_out)) != SUCCESS)
+    if ((ret = mat_create(NULL, m1_nr, m2_nr, NO_INIT, m_out)) != SUCCESS)
         return ret;
 
     // row per row product
@@ -192,18 +197,14 @@ RET mat_linear_activation(const Matrix * m1, const Matrix * m2_T, const Matrix *
         if (isnan(sum) || isinf(sum))
             return NUMERICAL_ERROR;
         (*m_out)->data[i] = (act == NULL) ? sum : act(sum);     // optional activation function
+
+        // todo: test this, should be faster than divisions and modulus
+        /* col++;
+        if (col == m2_nr) {
+            col = 0;
+            row++;
+        } */
     }
-
-    // debug
-    printf("\nRow per row product between");
-    mat_print(m1);
-    mat_print(m2_T);
-
-    printf("\nbias:");
-    mat_print(bias);
-
-    printf("\nResult:");
-    mat_print(*m_out);
     return SUCCESS;
 }
 
@@ -237,6 +238,35 @@ RET _mat_ew_op(Matrix * m1, const Matrix * m2, int op) {
         tmp = m1->data[i];
         if (isnan(tmp) || isinf(tmp))
             return NUMERICAL_ERROR;
+    }
+    return SUCCESS;
+}
+
+static inline float _random_normal() {
+    double u1 = (rand() + 1.0) / (RAND_MAX + 2.0);
+    double u2 = (rand() + 1.0) / (RAND_MAX + 2.0);
+    return (float) (sqrt(-2.0 * log(u1)) * cos(2.0 * M_PI * u2));
+}
+
+static RET _mat_init(Matrix *m, int init) {
+    if (m == NULL)
+        return NULL_POINTER;
+    if (m->n_rows < 1 || m->n_cols < 1)
+        return INVALID_SHAPE;
+
+    int n_out = m->n_rows;  // assuming m is transposed
+    int n_in = m->n_cols;
+
+    switch (init) {
+        case HE_INIT:
+            float stddev = sqrt(2.0 / n_in);
+            for (int i = 0; i < n_in * n_out; i++)
+                m->data[i] = _random_normal() * stddev;
+            break;
+        case ZERO_INIT:
+            for (int i = 0; i < n_in * n_out; i++)
+                m->data[i] = 0;
+            break;
     }
     return SUCCESS;
 }
