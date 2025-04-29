@@ -243,6 +243,7 @@ RET _mat_ew_op(Matrix * m1, const Matrix * m2, int op) {
 }
 
 static inline float _random_normal() {
+    // todo: use better generation than rand()
     double u1 = (rand() + 1.0) / (RAND_MAX + 2.0);
     double u2 = (rand() + 1.0) / (RAND_MAX + 2.0);
     return (float) (sqrt(-2.0 * log(u1)) * cos(2.0 * M_PI * u2));

@@ -29,7 +29,7 @@ int main() {
         //printf("\ndense_create %d/%d", i, N_LAYERS-1);
         if ((ret = dense_create(NULL, NULL, (i==0) ? INPUT_SIZE : N_NEURONS, N_NEURONS, NO_ACT, &network[i])) != SUCCESS) {
             print_error(ret);
-            return -1;
+            return 1;
         }
     }
     
