@@ -14,6 +14,7 @@ struct dense {
     int n_neurons;          // rows of W
     Matrix * W;             // n_neurons * n_input
     Matrix * b;             // 1 * n_neurons
+    Matrix * pre_act;
 };
 
 RET dense_create(const float * W, const float * b, int n_input, int n_neurons, int activation, Dense ** d) {
@@ -38,11 +39,18 @@ RET dense_create(const float * W, const float * b, int n_input, int n_neurons, i
 }
 
 RET dense_forward(Dense * d, const Matrix * input, Matrix ** out) {
-    return mat_linear_activation(input, d->W, d->b, ACTIVATIONS[d->activation], out);
+    RET ret;
+    if ((ret = mat_linear(input, d->W, d->b, out)) != SUCCESS
+        || (ret = mat_copy(*out, &d->pre_act)) != SUCCESS)      // store pre-activations for backward pass
+        return ret;
+    if (d->activation && (ret = mat_apply(*out, ACTIVATIONS[d->activation])) != SUCCESS)    // apply activation if not null
+        return ret;
+    return SUCCESS;
 }
 
 void dense_destroy(Dense * d) {
     mat_destroy(d->W);
     mat_destroy(d->b);
+    mat_destroy(d->pre_act);
     free(d);
 }

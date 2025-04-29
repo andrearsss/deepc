@@ -165,9 +165,8 @@ RET mat_dot(Matrix * m1, const Matrix * m2, Matrix ** m) {
     return SUCCESS;
 }
 
-RET mat_linear_activation(const Matrix * m1, const Matrix * m2_T, const Matrix * bias, float (*act)(float), Matrix ** m_out) {
-    // Performs row-wise dot product while adding bias,
-    // then applies an optional activation function (act)
+RET mat_linear(const Matrix * m1, const Matrix * m2_T, const Matrix * bias, Matrix ** m_out) {
+    // Performs row-wise dot product and adds bias
     if (!m1 || !m2_T || !bias || !m_out)
         return NULL_POINTER;
     if (m1->n_cols != m2_T->n_cols || bias->n_cols != m2_T->n_rows || bias->n_rows != 1)
@@ -196,7 +195,7 @@ RET mat_linear_activation(const Matrix * m1, const Matrix * m2_T, const Matrix *
         }
         if (isnan(sum) || isinf(sum))
             return NUMERICAL_ERROR;
-        (*m_out)->data[i] = (act == NULL) ? sum : act(sum);     // optional activation function
+        (*m_out)->data[i] = sum;
 
         // todo: test this, should be faster than divisions and modulus
         /* col++;
@@ -205,6 +204,14 @@ RET mat_linear_activation(const Matrix * m1, const Matrix * m2_T, const Matrix *
             row++;
         } */
     }
+    return SUCCESS;
+}
+
+RET mat_apply(Matrix * m, float (*act)(float)) {
+    if (m == NULL)
+        return NULL_POINTER;
+    for (int i = 0; i < m->n_rows*m->n_cols; i++)
+        m->data[i] = act(m->data[i]);
     return SUCCESS;
 }
 
