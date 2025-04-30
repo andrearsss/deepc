@@ -12,9 +12,11 @@ struct dense {
     int activation;
     int n_input;            // cols of W
     int n_neurons;          // rows of W
+    //int batch_size;         // n. of input samples
     Matrix * W;             // n_neurons * n_input
     Matrix * b;             // 1 * n_neurons
     Matrix * pre_act;
+    Matrix * deltas;        // n_neurons * n_sample (gradient flow coming from next layer * derivative of activation func)
 };
 
 RET dense_create(const float * W, const float * b, int n_input, int n_neurons, int activation, Dense ** d) {
