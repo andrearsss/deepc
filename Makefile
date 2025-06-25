@@ -17,11 +17,15 @@ OBJ_FILES = $(SRC_FILES:.c=.o)
 TEST_SRC_FILES = $(TEST_DIR)/test_main.c $(SRC_DIR)/matrix.c $(SRC_DIR)/dense.c $(SRC_DIR)/error.c $(SRC_DIR)/activations.c
 TEST_OBJ_FILES = $(TEST_SRC_FILES:.c=.o)
 
+MNIST_SRC_FILES = $(SRC_DIR)/mnist.c $(SRC_DIR)/matrix.c $(SRC_DIR)/dense.c $(SRC_DIR)/error.c $(SRC_DIR)/activations.c $(SRC_DIR)/mnist_file.c
+MNIST_OBJ_FILES = $(MNIST_SRC_FILES:.c=.o)
+
 # Output binaries
 BIN = deepc
 BIN_ASAN = deepc_asan
 BIN_BLAS = deepc_blas
 BIN_TEST = $(TEST_DIR)/test_main
+BIN_MNIST = deepc_mnist
 
 .PHONY: all asan blas test clean
 
@@ -40,6 +44,9 @@ test: $(BIN_TEST)
 debug: CFLAGS += $(F_DEBUG)
 debug: $(BIN)
 
+mnist: $(MNIST_OBJ_FILES)
+	$(CC) $(F_CC) $^ -o $(BIN_MNIST) $(F_MATH)
+
 # Build rules
 $(BIN): $(OBJ_FILES)
 	$(CC) $(F_CC) $^ -o $@ $(F_MATH)
@@ -57,4 +64,5 @@ $(BIN_TEST): $(TEST_OBJ_FILES)
 	$(CC) $(F_CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(OBJ_FILES) $(TEST_OBJ_FILES) $(BIN) $(BIN_ASAN) $(BIN_BLAS) $(BIN_TEST)
+	rm -f $(OBJ_FILES) $(TEST_OBJ_FILES) $(MNIST_OBJ_FILES) $(BIN) $(BIN_ASAN) $(BIN_BLAS) $(BIN_TEST) $(BIN_MNIST) 
+

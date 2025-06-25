@@ -76,5 +76,7 @@ dkms.conf
 test/test_main
 
 ## custom executables
+deepc
 deepc_blas
 deepc_asan
+deepc_mnist
