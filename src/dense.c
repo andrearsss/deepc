@@ -50,6 +50,18 @@ RET dense_forward(Dense * d, const Matrix * input, Matrix ** out) {
     return SUCCESS;
 }
 
+float * load_weights(const char* filename, size_t num_weights) {
+    FILE* f = fopen(filename, "rb");
+    if (!f) {
+        perror("Failed to open file");
+        return NULL;
+    }
+    float* weights = (float*)malloc(num_weights * sizeof(float));
+    fread(weights, sizeof(float), num_weights, f);
+    fclose(f);
+    return weights;
+}
+
 void dense_destroy(Dense * d) {
     mat_destroy(d->W);
     mat_destroy(d->b);
