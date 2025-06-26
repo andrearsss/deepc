@@ -215,6 +215,32 @@ RET mat_apply(Matrix * m, float (*act)(float)) {
     return SUCCESS;
 }
 
+RET mat_softmax_rw(Matrix *m) {
+    if (m == NULL)
+        return NULL_POINTER;
+
+    for (int i = 0; i < m->n_rows; i++) {
+        float max = m->data[i * m->n_cols];
+        float sum = 0.0f;
+
+        for (int j = 1; j < m->n_cols; j++) {
+            float val = m->data[i * m->n_cols + j];
+            if (val > max) max = val;
+        }
+
+        for (int j = 0; j < m->n_cols; j++) {
+            int idx = i * m->n_cols + j;
+            m->data[idx] = expf(m->data[idx] - max);
+            sum += m->data[idx];
+        }
+        
+        for (int j = 0; j < m->n_cols; j++) {
+            m->data[i * m->n_cols + j] /= sum;
+        }
+    }
+    return SUCCESS;
+}
+
 void mat_print(const Matrix * m) {
     if (m == NULL)
         return;

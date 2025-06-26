@@ -26,15 +26,15 @@ int main(int argc, char *argv[])
     float * weights;
     int w_offset, b_offset;
 
-    // Read the datasets from the files
+    // get datasets
     train_dataset = mnist_get_dataset(train_images_file, train_labels_file);
     test_dataset = mnist_get_dataset(test_images_file, test_labels_file);
 
 
     // load weights
-    size_t total_floats = (INPUT_SIZE*N_NEURONS + N_NEURONS)              // first layer
+    size_t total_floats = (INPUT_SIZE*N_NEURONS + N_NEURONS)                // first layer
                         + (N_LAYERS-2)*(N_NEURONS*N_NEURONS + N_NEURONS)    // hidden layers
-                        + (N_NEURONS*N_CLASSES + N_CLASSES);                  //output layer
+                        + (N_NEURONS*N_CLASSES + N_CLASSES);                // output layer
     weights = load_weights("mnist/weights.bin", total_floats);
 
 
@@ -63,54 +63,65 @@ int main(int argc, char *argv[])
     // last layer
     w_offset += N_NEURONS*N_NEURONS + N_NEURONS;
     b_offset += N_NEURONS*N_CLASSES + N_NEURONS;
-    if ((ret = dense_create(weights+w_offset, weights+b_offset, N_NEURONS, N_CLASSES, NO_ACT, &network[N_LAYERS-1])) != SUCCESS) {
+    if ((ret = dense_create(weights+w_offset, weights+b_offset, N_NEURONS, N_CLASSES, SOFTMAX, &network[N_LAYERS-1])) != SUCCESS) {
         print_error(ret);
         return 1;
     }
 
-    // test img
-    printf("\n");
-    for (int i=0; i<MNIST_IMAGE_SIZE; i++) {
-        printf("%-4d ", test_dataset->images[0].pixels[i]);
-        if ((i + 1) % 28 == 0) printf("\n");
-    }
-    printf("\nLABEL: %d\n\n", test_dataset->labels[0]);
-
-    // convert input to float
+    // inference
     Matrix * input;
     Matrix * tmp;
     float pixels_float[MNIST_IMAGE_SIZE];
+    float x, max = -INFINITY;
+    int predicted = -1;
 
-    for (int i = 0; i < MNIST_IMAGE_SIZE; ++i) {
-        pixels_float[i] = (float)(test_dataset->images[0].pixels[i]);
-    }
+    for (int i = 0; i < 10; i++) {
+        // convert input to float
+        for (int j = 0; j < MNIST_IMAGE_SIZE; j++) {
+            pixels_float[j] = (float)(test_dataset->images[i].pixels[j]);
+        }
 
-    if ( (ret = mat_create(pixels_float, 1, MNIST_IMAGE_SIZE, NO_INIT, &input)) != SUCCESS) {
-        print_error(ret);
-        return 1;
-    }
-    //mat_print(input);
-
-    // forward
-    for (int i = 0; i < N_LAYERS; i++) {
-        //printf("\ndense_forward %d/%d", i, N_LAYERS-1);
-        if ((ret = dense_forward(network[i], input, &tmp)) != SUCCESS) {
+        if ( (ret = mat_create(pixels_float, 1, MNIST_IMAGE_SIZE, NO_INIT, &input)) != SUCCESS) {
             print_error(ret);
             return 1;
         }
-        mat_destroy(input);
-        input = tmp;
+
+        // forward
+        for (int j = 0; j < N_LAYERS; j++) {
+            if ((ret = dense_forward(network[j], input, &tmp)) != SUCCESS) {
+                print_error(ret);
+                return 1;
+            }
+            mat_destroy(input);
+            input = tmp;
+        }
+
+        // img visualization
+        printf("\n");
+        for (int j=0; j<MNIST_IMAGE_SIZE; j++) {
+            printf("%-3d ", test_dataset->images[i].pixels[j]);
+            if ((j + 1) % 28 == 0) printf("\n");
+        }
+        printf("\nLABEL: %d", test_dataset->labels[i]);
+
+        // get predicted class as argmax
+        max = -INFINITY;
+        predicted = -1;
+        for (int j=0; j<N_CLASSES; j++) {
+            mat_get(tmp, 0, j, &x);
+            if (x > max){
+                max = x;
+                predicted = j;
+            }
+        }
+        printf("\nPrediction: %d", predicted);
+        printf("\nLogits:");
+        mat_print(tmp);
     }
 
-    printf("\nOutput:");
-    mat_print(tmp);
-
-
-    // Cleanup
+    // clean up
     mnist_free_dataset(train_dataset);
     mnist_free_dataset(test_dataset);
     free(weights);
-
-
     return 0;
 }

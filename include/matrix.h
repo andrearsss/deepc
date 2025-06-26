@@ -17,10 +17,11 @@ RET mat_get(const Matrix * m, int i, int j, float * out);
 RET mat_transpose(Matrix * m);                                                                  // in-place transpose
 RET mat_add_bias(Matrix * m, int bias);                                                         // add bias
 RET mat_add_ew(Matrix * m1, const Matrix * m2);                                                 // element-wise sum
-RET mat_mul_ew(Matrix * m1, const Matrix * m2);                                                 // element-wise product
+RET mat_mul_ew(Matrix * m1, const Matrix * m2);                                                 // element-wise product (Hadamard)
 RET mat_dot(Matrix * m1, const Matrix * m2, Matrix ** m);                                       // dot product
 RET mat_linear(const Matrix * m1, const Matrix * m2_T, const Matrix * bias, Matrix ** m_out);   // m1*m2 + b
 RET mat_apply(Matrix * m, float (*act)(float));                                                 // apply a func to all elements
+RET mat_softmax_rw(Matrix *m);                                                                  // in-place row-wise softmax
 
 void mat_print(const Matrix * m);
 void mat_destroy(Matrix * m);     

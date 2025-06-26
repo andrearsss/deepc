@@ -45,8 +45,14 @@ RET dense_forward(Dense * d, const Matrix * input, Matrix ** out) {
     if ((ret = mat_linear(input, d->W, d->b, out)) != SUCCESS
         || (ret = mat_copy(*out, &d->pre_act)) != SUCCESS)      // store pre-activations for backward pass
         return ret;
-    if (d->activation && (ret = mat_apply(*out, ACTIVATIONS[d->activation])) != SUCCESS)    // apply activation if not null
-        return ret;
+    if (d->activation != NO_ACT) {
+        if (d->activation == SOFTMAX) {
+             if ((ret = mat_softmax_rw(*out)) != SUCCESS)
+                return ret;
+        }
+        else if ((d->activation != SOFTMAX) && (ret = mat_apply(*out, ACTIVATIONS[d->activation]) != SUCCESS))    // apply scalar activation
+            return ret;
+    }
     return SUCCESS;
 }
 
