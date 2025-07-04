@@ -25,6 +25,8 @@ int main(int argc, char *argv[])
     Dense * network[N_LAYERS];
     float * weights;
     int w_offset, b_offset;
+    int correct_predictions = 0;
+    float accuracy;
 
     // get datasets
     train_dataset = mnist_get_dataset(train_images_file, train_labels_file);
@@ -75,7 +77,7 @@ int main(int argc, char *argv[])
     float x, max = -INFINITY;
     int predicted = -1;
 
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < test_dataset->size; i++) {
         // convert input to float
         for (int j = 0; j < MNIST_IMAGE_SIZE; j++) {
             pixels_float[j] = (float)(test_dataset->images[i].pixels[j]);
@@ -97,12 +99,14 @@ int main(int argc, char *argv[])
         }
 
         // img visualization
+        /*
         printf("\n");
         for (int j=0; j<MNIST_IMAGE_SIZE; j++) {
             printf("%-3d ", test_dataset->images[i].pixels[j]);
             if ((j + 1) % 28 == 0) printf("\n");
         }
         printf("\nLABEL: %d", test_dataset->labels[i]);
+        */
 
         // get predicted class as argmax
         max = -INFINITY;
@@ -112,12 +116,19 @@ int main(int argc, char *argv[])
             if (x > max){
                 max = x;
                 predicted = j;
+                if (predicted == test_dataset->labels[i]) {
+                    correct_predictions++;
+                }
             }
         }
-        printf("\nPrediction: %d", predicted);
-        printf("\nLogits:");
-        mat_print(tmp);
+        //printf("\nPrediction: %d", predicted);
+        //printf("\nLogits:");
+        //mat_print(tmp);
     }
+
+    // calculate accuracy
+    accuracy = (float)correct_predictions / test_dataset->size * 100.0;
+    printf("\nAccuracy: %.2f%% (%d/%d)\n", accuracy, correct_predictions, test_dataset->size);
 
     // clean up
     mnist_free_dataset(train_dataset);

@@ -174,7 +174,6 @@ RET mat_linear(const Matrix * m1, const Matrix * m2_T, const Matrix * bias, Matr
 
     RET ret;
     float sum, b;
-    int i, j, row, col;
     int m1_nr = m1->n_rows;
     int m2_nr = m2_T->n_rows;
     int m1_nc = m1->n_cols;
@@ -184,26 +183,39 @@ RET mat_linear(const Matrix * m1, const Matrix * m2_T, const Matrix * bias, Matr
 
     // row per row product
     // O(N1*M2*M1)
-    for (i = 0; i < m1_nr*m2_nr; i++) {
-        row = i / m2_nr;   // row iterator for m1
-        col = i % m2_nr;   // col iterator for m2
+    for (int i = 0; i < m1_nr; i++) {
+        for (int j = 0; j < m2_nr; j++) {
+            if ((ret = mat_get(bias, 0, j, &b)) != SUCCESS)
+                return ret;   
+            sum = b;
+            for (int k = 0; k < m1_nc; k++) {
+                sum += m1->data[i * m1_nc + k] * m2_T->data[j * m1_nc + k];
+            }
+            if (isnan(sum) || isinf(sum))
+                return NUMERICAL_ERROR;
+            (*m_out)->data[i * m2_nr + j] = sum;
+        }
+    }
+
+    // single-loop approach
+    /*
+    int row = 0, col = 0;
+    for (int i = 0; i < m1_nr*m2_nr; i++) {
         if ((ret = mat_get(bias, 0, col, &b)) != SUCCESS)
             return ret;
         sum = b;
-        for (j = 0; j < m1_nc; j++) {
+        for (int j = 0; j < m1_nc; j++) {
             sum += m1->data[row*m1_nc + j] * m2_T->data[col*m1_nc + j];
         }
         if (isnan(sum) || isinf(sum))
             return NUMERICAL_ERROR;
         (*m_out)->data[i] = sum;
 
-        // todo: test this, should be faster than divisions and modulus
-        /* col++;
-        if (col == m2_nr) {
+        if (++col == m2_nr) {
             col = 0;
             row++;
-        } */
-    }
+        }
+    }*/
     return SUCCESS;
 }
 
