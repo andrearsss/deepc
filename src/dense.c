@@ -42,16 +42,21 @@ RET dense_create(const float * W, const float * b, int n_input, int n_neurons, i
 
 RET dense_forward(Dense * d, const Matrix * input, Matrix ** out) {
     RET ret;
-    if ((ret = mat_linear(input, d->W, d->b, out)) != SUCCESS
-        || (ret = mat_copy(*out, &d->pre_act)) != SUCCESS)      // store pre-activations for backward pass
+    if ((ret = mat_linear(input, d->W, d->b, out)) != SUCCESS)
+        // || (ret = mat_copy(*out, &d->pre_act)) != SUCCESS)      // store pre-activations for backward pass
         return ret;
-    if (d->activation != NO_ACT) {
-        if (d->activation == SOFTMAX) {
-             if ((ret = mat_softmax_rw(*out)) != SUCCESS)
+    switch (d->activation) {
+        case NO_ACT:
+            break;
+        case SOFTMAX:
+            if ((ret = mat_softmax_rw(*out)) != SUCCESS)
                 return ret;
-        }
-        else if ((d->activation != SOFTMAX) && (ret = mat_apply(*out, ACTIVATIONS[d->activation]) != SUCCESS))    // apply scalar activation
-            return ret;
+            break;
+        default:
+            // scalar activations
+            if ((ret = mat_apply(*out, ACTIVATIONS[d->activation])) != SUCCESS)
+                return ret;
+            break;
     }
     return SUCCESS;
 }
